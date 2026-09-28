@@ -1,0 +1,239 @@
+import express from "express";
+import slugify from "slugify";
+
+import Draft from "../models/Draft.js";
+import Ebook from "../models/Ebook.js";
+import { auth, creatorOnly } from "../middleware/auth.js";
+
+const router = express.Router();
+
+/*
+ * Get all drafts belonging to current creator
+ */
+router.get("/", auth, creatorOnly, async (req, res) => {
+  try {
+    const drafts = await Draft.find({
+      author: req.user._id,
+      status: "draft",
+    }).sort({ updatedAt: -1 });
+
+    res.json(drafts);
+  } catch (e) {
+    res.status(500).json({
+      message: e.message,
+    });
+  }
+});
+
+/*
+ * Get one draft
+ */
+router.get("/:id", auth, creatorOnly, async (req, res) => {
+  try {
+    const draft = await Draft.findOne({
+      _id: req.params.id,
+      author: req.user._id,
+    });
+
+    if (!draft) {
+      return res.status(404).json({
+        message: "Draft not found",
+      });
+    }
+
+    res.json(draft);
+  } catch (e) {
+    res.status(500).json({
+      message: e.message,
+    });
+  }
+});
+
+/*
+ * Create a new draft
+ */
+router.post("/", auth, creatorOnly, async (req, res) => {
+  try {
+    const draft = await Draft.create({
+      author: req.user._id,
+      title: req.body.title?.trim() || "Untitled Book",
+      chapters: [
+        {
+          title: "Chapter 1",
+          content: "",
+        },
+      ],
+    });
+
+    res.status(201).json(draft);
+  } catch (e) {
+    res.status(500).json({
+      message: e.message,
+    });
+  }
+});
+
+/*
+ * Save/update draft
+ */
+router.put("/:id", auth, creatorOnly, async (req, res) => {
+  try {
+    const draft = await Draft.findOne({
+      _id: req.params.id,
+      author: req.user._id,
+      status: "draft",
+    });
+
+    if (!draft) {
+      return res.status(404).json({
+        message: "Draft not found",
+      });
+    }
+
+    if (req.body.title !== undefined) {
+      draft.title = req.body.title;
+    }
+
+    if (Array.isArray(req.body.chapters)) {
+      draft.chapters = req.body.chapters;
+    }
+
+    draft.lastSavedAt = new Date();
+
+    await draft.save();
+
+    res.json({
+      message: "Draft saved successfully",
+      draft,
+    });
+  } catch (e) {
+    res.status(500).json({
+      message: e.message,
+    });
+  }
+});
+
+/*
+ * Delete draft
+ */
+router.delete("/:id", auth, creatorOnly, async (req, res) => {
+  try {
+    const draft = await Draft.findOneAndDelete({
+      _id: req.params.id,
+      author: req.user._id,
+      status: "draft",
+    });
+
+    if (!draft) {
+      return res.status(404).json({
+        message: "Draft not found",
+      });
+    }
+
+    res.json({
+      message: "Draft deleted",
+    });
+  } catch (e) {
+    res.status(500).json({
+      message: e.message,
+    });
+  }
+});
+
+/*
+ * Publish draft
+ */
+router.post("/:id/publish", auth, creatorOnly, async (req, res) => {
+  try {
+    const draft = await Draft.findOne({
+      _id: req.params.id,
+      author: req.user._id,
+      status: "draft",
+    });
+
+    if (!draft) {
+      return res.status(404).json({
+        message: "Draft not found",
+      });
+    }
+
+    if (!draft.title.trim()) {
+      return res.status(400).json({
+        message: "Book title is required",
+      });
+    }
+
+    if (!draft.chapters.length) {
+      return res.status(400).json({
+        message: "Add at least one chapter",
+      });
+    }
+
+    const hasContent = draft.chapters.some(
+      (chapter) => chapter.content?.trim(),
+    );
+
+    if (!hasContent) {
+      return res.status(400).json({
+        message: "Write some content before publishing",
+      });
+    }
+
+    const baseSlug = slugify(draft.title, {
+      lower: true,
+      strict: true,
+    });
+
+    let slug = baseSlug;
+    let i = 1;
+
+    while (await Ebook.findOne({ slug })) {
+      slug = `${baseSlug}-${i++}`;
+    }
+
+    const content = draft.chapters
+      .map(
+        (chapter) =>
+          `<h2>${chapter.title}</h2><p>${chapter.content
+            .replace(/\n/g, "</p><p>")}</p>`,
+      )
+      .join("");
+
+    const ebook = await Ebook.create({
+      title: draft.title,
+      slug,
+      description: `Published by ${req.user.name || req.user.username}`,
+      author: req.user._id,
+
+      file: "",
+      coverImage: "",
+
+      price: 0,
+      isPaid: false,
+
+      pageCount: null,
+
+      keywords: "",
+      publisher: req.user.name || req.user.username,
+
+      status: "available",
+      isDeleted: false,
+
+      content,
+    });
+
+    draft.status = "published";
+    await draft.save();
+
+    res.status(201).json({
+      message: "Book published successfully",
+      book: ebook,
+    });
+  } catch (e) {
+    res.status(500).json({
+      message: e.message,
+    });
+  }
+});
+
+export default router;
