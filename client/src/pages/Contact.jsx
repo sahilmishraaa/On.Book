@@ -1,1 +1,53 @@
-import{useState}from'react';import{api}from'../services/api';export default function Contact(){const[f,setF]=useState({name:'',email:'',message:''});const[msg,setMsg]=useState('');const submit=async e=>{e.preventDefault();try{const d=await api('/contact',{method:'POST',body:JSON.stringify(f)});setMsg(d.message);setF({name:'',email:'',message:''})}catch(e){setMsg(e.message)}};return <section className="contact-page"><div><p className="eyebrow">Get in touch</p><h1>Let's Be Friends!</h1><p>Questions about reading, publishing or On.Book? Send us a message.</p></div><form className="contact-card" onSubmit={submit}>{msg&&<div className="notice">{msg}</div>}<input required placeholder="Your name" value={f.name} onChange={e=>setF({...f,name:e.target.value})}/><input required type="email" placeholder="Email address" value={f.email} onChange={e=>setF({...f,email:e.target.value})}/><textarea required placeholder="Your message" value={f.message} onChange={e=>setF({...f,message:e.target.value})}/><button className="dark-btn">Send Message</button></form></section>}
+import { useState } from "react";
+import { api } from "../services/api";
+export default function Contact() {
+  const [f, setF] = useState({ name: "", email: "", message: "" });
+  const [msg, setMsg] = useState("");
+  const submit = async (e) => {
+    e.preventDefault();
+    try {
+      const d = await api("/contact", {
+        method: "POST",
+        body: JSON.stringify(f),
+      });
+      setMsg(d.message);
+      setF({ name: "", email: "", message: "" });
+    } catch (e) {
+      setMsg(e.message);
+    }
+  };
+  return (
+    <section className="contact-page">
+      <div>
+        <p className="eyebrow">Get in touch</p>
+        <h1>Let's Be Friends!</h1>
+        <p>
+          Questions about reading, publishing or On.Book? Send us a message.
+        </p>
+      </div>
+      <form className="contact-card" onSubmit={submit}>
+        {msg && <div className="notice">{msg}</div>}
+        <input
+          required
+          placeholder="Your name"
+          value={f.name}
+          onChange={(e) => setF({ ...f, name: e.target.value })}
+        />
+        <input
+          required
+          type="email"
+          placeholder="Email address"
+          value={f.email}
+          onChange={(e) => setF({ ...f, email: e.target.value })}
+        />
+        <textarea
+          required
+          placeholder="Your message"
+          value={f.message}
+          onChange={(e) => setF({ ...f, message: e.target.value })}
+        />
+        <button className="dark-btn">Send Message</button>
+      </form>
+    </section>
+  );
+}

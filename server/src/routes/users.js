@@ -1,6 +1,7 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import { auth } from '../middleware/auth.js';
+import { upload } from '../middleware/upload.js';
 
 import Order from '../models/Order.js';
 import Wishlist from '../models/Wishlist.js';
@@ -8,39 +9,72 @@ import ReadingHistory from '../models/ReadingHistory.js';
 
 const router = express.Router();
 
-router.put('/profile', auth, async (req, res) => {
-  try {
-    const { fullName, email, password } = req.body;
+router.put(
+  '/profile',
+  auth,
+  upload.single('avatar'),
+  async (req, res) => {
+    try {
+      const {
+        fullName,
+        email,
+        password,
+        bio,
+      } = req.body;
 
-    if (
-      !password ||
-      !(await bcrypt.compare(password, req.user.password))
-    ) {
-      return res.status(400).json({
-        message: 'Incorrect password',
+      if (
+        !password ||
+        !(await bcrypt.compare(
+          password,
+          req.user.password
+        ))
+      ) {
+        return res.status(400).json({
+          message: 'Incorrect password',
+        });
+      }
+
+      req.user.name = (fullName || '').trim();
+      req.user.email = (email || '')
+        .toLowerCase()
+        .trim();
+
+      // Bio only applies to creators/admins
+      if (
+        req.user.role === 'creator' ||
+        req.user.role === 'admin'
+      ) {
+        req.user.bio = (bio || '').trim();
+      }
+
+      // New profile picture
+      if (req.file) {
+        req.user.avatar =
+          `/uploads/avatars/${req.file.filename}`;
+      }
+
+      await req.user.save();
+
+      res.json({
+        message: 'Profile updated successfully',
+
+        user: {
+          id: req.user._id,
+          name: req.user.name,
+          username: req.user.username,
+          email: req.user.email,
+          role: req.user.role,
+          bio: req.user.bio,
+          avatar: req.user.avatar,
+        },
+      });
+    } catch (e) {
+      res.status(500).json({
+        message: e.message,
       });
     }
-
-    req.user.name = (fullName || '').trim();
-    req.user.email = (email || '').toLowerCase().trim();
-
-    await req.user.save();
-
-    res.json({
-      message: 'Profile updated successfully',
-      user: {
-        name: req.user.name,
-        email: req.user.email,
-        username: req.user.username,
-        role: req.user.role,
-      },
-    });
-  } catch (e) {
-    res.status(500).json({
-      message: e.message,
-    });
   }
-});
+);
 
 router.get('/orders', auth, async (req, res) => {
   res.json(

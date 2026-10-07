@@ -28,6 +28,11 @@ app.use(
   express.static(path.resolve('uploads/covers'))
 );
 
+app.use(
+  '/uploads/avatars',
+  express.static(path.resolve('uploads/avatars'))
+);
+
 // Health check
 app.get('/api/health', (_, res) => {
   res.json({

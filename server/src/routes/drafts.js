@@ -1,7 +1,7 @@
 import express from "express";
 import slugify from "slugify";
 
-import Draft from "../models/Draft.js";
+import Draft from "../models/BookDraft.js";
 import Ebook from "../models/Ebook.js";
 import { auth, creatorOnly } from "../middleware/auth.js";
 
@@ -157,13 +157,13 @@ router.post("/:id/publish", auth, creatorOnly, async (req, res) => {
       });
     }
 
-    if (!draft.title.trim()) {
+    if (!draft.title?.trim()) {
       return res.status(400).json({
         message: "Book title is required",
       });
     }
 
-    if (!draft.chapters.length) {
+    if (!draft.chapters?.length) {
       return res.status(400).json({
         message: "Add at least one chapter",
       });
@@ -179,6 +179,10 @@ router.post("/:id/publish", auth, creatorOnly, async (req, res) => {
       });
     }
 
+    // -----------------------------------------
+    // CREATE UNIQUE SLUG
+    // -----------------------------------------
+
     const baseSlug = slugify(draft.title, {
       lower: true,
       strict: true,
@@ -191,38 +195,100 @@ router.post("/:id/publish", auth, creatorOnly, async (req, res) => {
       slug = `${baseSlug}-${i++}`;
     }
 
+    // -----------------------------------------
+    // CONVERT CHAPTERS INTO BOOK CONTENT
+    // -----------------------------------------
+
     const content = draft.chapters
-      .map(
-        (chapter) =>
-          `<h2>${chapter.title}</h2><p>${chapter.content
-            .replace(/\n/g, "</p><p>")}</p>`,
-      )
+      .map((chapter) => {
+        const safeTitle = chapter.title || "Chapter";
+
+        const paragraphs = (chapter.content || "")
+          .split(/\n+/)
+          .filter(Boolean)
+          .map((paragraph) => `<p>${paragraph}</p>`)
+          .join("");
+
+        return `
+          <section class="book-chapter">
+            <h2>${safeTitle}</h2>
+            ${paragraphs}
+          </section>
+        `;
+      })
       .join("");
+
+    // -----------------------------------------
+    // PRICING
+    // -----------------------------------------
+
+    const isPaid =
+      draft.pricingType === "paid" &&
+      Number(draft.price) > 0;
+
+    const price = isPaid
+      ? Number(draft.price)
+      : 0;
+
+    // -----------------------------------------
+    // CREATE EBOOK
+    // -----------------------------------------
 
     const ebook = await Ebook.create({
       title: draft.title,
+
       slug,
-      description: `Published by ${req.user.name || req.user.username}`,
+
+      description:
+        draft.description ||
+        `Published by ${
+          draft.alias ||
+          draft.publisher ||
+          req.user.name ||
+          req.user.username
+        }`,
+
       author: req.user._id,
 
+      // Written book doesn't use an uploaded PDF
       file: "",
-      coverImage: "",
 
-      price: 0,
-      isPaid: false,
+      // Cover will be added from draft
+      coverImage: draft.coverImage || "",
 
-      pageCount: null,
+      // Pricing
+      price,
+      isPaid,
 
-      keywords: "",
-      publisher: req.user.name || req.user.username,
+      // Book information
+      pageCount: draft.pageCount || null,
+
+      genres: draft.genres || [],
+
+      keywords: draft.keywords || "",
+
+      publisher:
+        draft.publisher ||
+        draft.alias ||
+        req.user.name ||
+        req.user.username,
+
+      category: draft.category || null,
+
+      // Written content
+      content,
 
       status: "available",
-      isDeleted: false,
 
-      content,
+      isDeleted: false,
     });
 
+    // -----------------------------------------
+    // MARK DRAFT AS PUBLISHED
+    // -----------------------------------------
+
     draft.status = "published";
+
     await draft.save();
 
     res.status(201).json({
@@ -230,6 +296,8 @@ router.post("/:id/publish", auth, creatorOnly, async (req, res) => {
       book: ebook,
     });
   } catch (e) {
+    console.error("Publish draft error:", e);
+
     res.status(500).json({
       message: e.message,
     });

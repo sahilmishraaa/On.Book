@@ -1,1 +1,91 @@
-import{useState}from'react';import{Link,useNavigate}from'react-router-dom';import{api}from'../services/api';import{useAuth}from'../context/AuthContext';export default function Signup(){const[f,setF]=useState({name:'',username:'',email:'',password:'',cpassword:'',role:'reader'});const[err,setErr]=useState('');const nav=useNavigate();const{login}=useAuth();const submit=async e=>{e.preventDefault();try{const d=await api('/auth/signup',{method:'POST',body:JSON.stringify(f)});login(d);nav('/')}catch(e){setErr(e.message)}};return <section className="auth-page"><div className="auth-card"><div className="auth-art"><img src="/assets/img/user/loginsignupsideimg.png"/></div><form onSubmit={submit}><p className="eyebrow">Join On.Book</p><h1>Create Account</h1>{err&&<div className="error">{err}</div>}<input placeholder="Full name" required value={f.name} onChange={e=>setF({...f,name:e.target.value})}/><input placeholder="Username" required value={f.username} onChange={e=>setF({...f,username:e.target.value})}/><input type="email" placeholder="Email" required value={f.email} onChange={e=>setF({...f,email:e.target.value})}/><input type="password" placeholder="Password" required value={f.password} onChange={e=>setF({...f,password:e.target.value})}/><input type="password" placeholder="Confirm password" required value={f.cpassword} onChange={e=>setF({...f,cpassword:e.target.value})}/><label className="check"><input type="checkbox" checked={f.role==='creator'} onChange={e=>setF({...f,role:e.target.checked?'creator':'reader'})}/> I want to publish books</label><button className="dark-btn">Create Account</button><p>Already have an account? <Link to="/login">Sign in</Link></p></form></div></section>}
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { api } from "../services/api";
+import { useAuth } from "../context/AuthContext";
+export default function Signup() {
+  const [f, setF] = useState({
+    name: "",
+    username: "",
+    email: "",
+    password: "",
+    cpassword: "",
+    role: "reader",
+  });
+  const [err, setErr] = useState("");
+  const nav = useNavigate();
+  const { login } = useAuth();
+  const submit = async (e) => {
+    e.preventDefault();
+    try {
+      const d = await api("/auth/signup", {
+        method: "POST",
+        body: JSON.stringify(f),
+      });
+      login(d);
+      nav("/");
+    } catch (e) {
+      setErr(e.message);
+    }
+  };
+  return (
+    <section className="auth-page">
+      <div className="auth-card">
+        <div className="auth-art">
+          <img src="/assets/img/user/loginsignupsideimg.png" />
+        </div>
+        <form onSubmit={submit}>
+          <p className="eyebrow">Join On.Book</p>
+          <h1>Create Account</h1>
+          {err && <div className="error">{err}</div>}
+          <input
+            placeholder="Full name"
+            required
+            value={f.name}
+            onChange={(e) => setF({ ...f, name: e.target.value })}
+          />
+          <input
+            placeholder="Username"
+            required
+            value={f.username}
+            onChange={(e) => setF({ ...f, username: e.target.value })}
+          />
+          <input
+            type="email"
+            placeholder="Email"
+            required
+            value={f.email}
+            onChange={(e) => setF({ ...f, email: e.target.value })}
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            required
+            value={f.password}
+            onChange={(e) => setF({ ...f, password: e.target.value })}
+          />
+          <input
+            type="password"
+            placeholder="Confirm password"
+            required
+            value={f.cpassword}
+            onChange={(e) => setF({ ...f, cpassword: e.target.value })}
+          />
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={f.role === "creator"}
+              onChange={(e) =>
+                setF({ ...f, role: e.target.checked ? "creator" : "reader" })
+              }
+            />{" "}
+            I want to publish books
+          </label>
+          <button className="dark-btn">Create Account</button>
+          <p>
+            Already have an account? <Link to="/login">Sign in</Link>
+          </p>
+        </form>
+      </div>
+    </section>
+  );
+}

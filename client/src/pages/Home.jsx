@@ -1,2 +1,91 @@
-import{useEffect,useState}from'react';import{Link,useNavigate}from'react-router-dom';import{api}from'../services/api';import BookCard from'../components/BookCard';
-export default function Home(){const[books,setBooks]=useState([]);const nav=useNavigate();useEffect(()=>{api('/ebooks?sort=popular').then(setBooks).catch(()=>{})},[]);return <><section className="hero"><div className="hero-copy"><h1>Find Your Next Book</h1><p>Our most popular and trending <b>On.Book</b> picks for your next reading mood.</p><button className="dark-btn big" onClick={()=>nav('/books')}>Explore Now</button></div><div className="hero-books"><div><img src="/assets/img/core/stranger.png"/><b>The Stranger</b><span>Albert Camus</span></div><div className="flip"><b>Der Process</b><span>Franz Kafka</span><img src="/assets/img/core/kafka.png"/></div><div><img src="/assets/img/core/dante.png"/><b>Divine Comedy</b><span>Dante Alighieri</span></div></div></section><section className="section"><div className="section-head"><h2>Bestsellers</h2><Link to="/books?sort=popular">See all</Link></div><div className="book-grid">{books.slice(0,4).map(b=><BookCard key={b._id} book={b}/>)}{!books.length&&['/assets/img/core/1.jpeg','/assets/img/core/2.jpeg','/assets/img/core/3.jpg','/assets/img/core/4.jpg'].map((x,i)=><div className="book-card" key={x}><img src={x}/><h3>{['Thus Spoke Zarathustra','Confession of a Mask','The Rebel','1984'][i]}</h3><p>Classic collection</p></div>)}</div></section><section className="about-strip"><div><h2>Read. Write. Share.</h2><p>On.Book is a home for readers and creators — discover new stories, publish your own and keep your library in one place.</p></div><Link className="outline-btn" to="/creator">Become a Creator</Link></section></>}
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { api } from "../services/api";
+import BookCard from "../components/BookCard";
+export default function Home() {
+  const [books, setBooks] = useState([]);
+  const nav = useNavigate();
+  useEffect(() => {
+    api('/ebooks/bestsellers')
+      .then(setBooks)
+      .catch(() => {});
+  }, []);
+  return (
+    <>
+      <section className="hero">
+        <div className="hero-copy">
+          <h1>Find Your Next Book</h1>
+          <p>
+            Our most popular and trending <b>On.Book</b> picks for your next
+            reading mood.
+          </p>
+          <button className="dark-btn big" onClick={() => nav("/books")}>
+            Explore Now
+          </button>
+        </div>
+        <div className="hero-books">
+          <div>
+            <img src="/assets/img/core/stranger.png" />
+            <b>The Stranger</b>
+            <span>Albert Camus</span>
+          </div>
+          <div className="flip">
+            <b>Der Process</b>
+            <span>Franz Kafka</span>
+            <img src="/assets/img/core/kafka.png" />
+          </div>
+          <div>
+            <img src="/assets/img/core/dante.png" />
+            <b>Divine Comedy</b>
+            <span>Dante Alighieri</span>
+          </div>
+        </div>
+      </section>
+      <section className="section">
+        <div className="section-head">
+          <h2>Bestsellers</h2>
+          <Link to="/books?sort=popular">See all</Link>
+        </div>
+        <div className="book-grid">
+          {books.slice(0, 4).map((b) => (
+            <BookCard key={b._id} book={b} />
+          ))}
+          {!books.length &&
+            [
+              "/assets/img/core/1.jpeg",
+              "/assets/img/core/2.jpeg",
+              "/assets/img/core/3.jpg",
+              "/assets/img/core/4.jpg",
+            ].map((x, i) => (
+              <div className="book-card" key={x}>
+                <img src={x} />
+                <h3>
+                  {
+                    [
+                      "Thus Spoke Zarathustra",
+                      "Confession of a Mask",
+                      "The Rebel",
+                      "1984",
+                    ][i]
+                  }
+                </h3>
+                <p>Classic collection</p>
+              </div>
+            ))}
+        </div>
+      </section>
+      <section className="about-strip">
+        <div>
+          <h2>Read. Write. Share.</h2>
+          <p>
+            On.Book is a home for readers and creators — discover new stories,
+            publish your own and keep your library in one place.
+          </p>
+        </div>
+        <Link className="outline-btn" to="/creator">
+          Become a Creator
+        </Link>
+      </section>
+    </>
+  );
+}

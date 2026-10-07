@@ -89,6 +89,11 @@ const ebookSchema = new mongoose.Schema({
     default: ''
   },
 
+  genres: {
+    type: [String],
+    default: [],
+  },
+
   keywords: {
     type: String,
     default: ''
